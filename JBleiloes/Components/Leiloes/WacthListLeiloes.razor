@@ -1,0 +1,72 @@
+@page "/mywacthlist"
+
+@using JBleiloes.data.Utilizadores
+@using JBleiloes.data.Leiloes
+@using JBleiloes.data
+@rendermode InteractiveServer
+
+<PageTitle> Visualizando watchList</PageTitle>
+
+    <h1>WatchList do  @SessionUser.getSessionUser().nome</h1>
+
+@*data @user.data_nascimento nif @user.NIF cc @user.n_cc email @user.email nome @user.nome pass @user.password username @user.username tipo @user.tipo_utilizador
+*@
+<div class="leilao-container">
+    @if (leiloes == null)
+    {
+        <h3>Loading . . . </h3>
+    }
+    else
+    {
+        @foreach (Leilao leilao in leiloes)
+        {
+            @*<p>Id: @leilao.id Titulo: @leilao.titulo Vendedor: @leilao.vendedor  Estado: @leilao.a_decorrer VeiculoId: @leilao.veiculo Minimo: @leilao.valor_minimo</p>
+    *@
+            <div class="rectangle">
+                <Leilaocard Leilao="leilao" />
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .leilao-container {
+        display: flex;
+        gap: 5px;
+        padding: 10px;
+        align-items: flex-start;
+        margin-right: 30px;
+        margin-left: 30px;
+    }
+
+    .rectangle {
+        width: 354px;
+        height: 400px;
+        padding: 10px;
+        position: relative;
+    }
+
+    .redirect-link {
+        cursor: pointer;
+    }
+
+    .link-text {
+        font-size: 40px;
+        color: gray;
+        text-decoration: none;
+    }
+
+</style>
+
+@code {
+    private IEnumerable<Leilao> leiloes;
+
+    private Utilizador? user = @SessionUser.getSessionUser();
+
+    private JBLeiloes jb = new JBLeiloes();
+
+    protected override void OnInitialized()
+    {
+        leiloes = jb.GetLeiloesUtilizadorWatchList(@SessionUser.getSessionUser().getUsername());
+    }
+}

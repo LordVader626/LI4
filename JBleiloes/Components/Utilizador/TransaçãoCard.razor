@@ -1,0 +1,113 @@
+﻿@using System
+@using JBleiloes.data.Leiloes
+@using JBleiloes.data.Utilizadores
+@using JBleiloes.DB.Tabelas
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+@if (Leilao == null)
+{
+    <h3>Loading. . . </h3>
+}
+else
+{
+    <div class="card leilao-card" @onclick="() => showLeilao(Leilao.id)">
+        <div class="card-body">
+            <h5 class="card-title">@Leilao.titulo</h5>
+            <div class="bottom-info">
+                @if (SessionUser.getSessionUser().username != Leilao.vendedor && SessionUser.getSessionUser().username != Leilao.comprador)
+                {
+                    @if (Leilao.Pago == true)
+                    {
+                        <p><strong>Estado:</strong> Pago</p>
+                    }
+                    else
+                    {
+                        <p><strong>Estado:</strong> Pendente Pagamento</p>
+                        <p><strong>Pagamento até:</strong> @dataPagamento(Leilao.tempo_de_leilao)</p>
+                    }
+                    <p><strong>Lance vencedor:</strong> @Leilao.valor_atual€</p>
+                    <p><strong>Vendedor:</strong> @Leilao.vendedor</p>
+                    <p><strong>Comprador:</strong> @Leilao.comprador</p>
+                }
+                else{
+
+                    @if (Leilao.Pago == true)
+                    {
+                        <p><strong>Lance Vencedor:</strong> @Leilao.valor_atual</p>
+                    }
+                    else
+                    {
+                        <p><strong>Valor a pagar:</strong> $@Leilao.valor_atual</p>
+                    }
+                    @if (SessionUser.getSessionUser().username == Leilao.vendedor)
+                    {
+                         <p><strong>Comprador:</strong> @Leilao.comprador</p>
+                    }
+                    else
+                    {
+                        <p><strong>Vendedor:</strong> @Leilao.vendedor</p>
+                        <p><strong>Pagamento até:</strong> @dataPagamento(Leilao.tempo_de_leilao)</p>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+
+    .card {
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        max-width: 300px;
+        margin: auto;
+        text-align: center;
+        font-family: arial;
+        border-radius: 10px;
+        transition: transform 0.4s, filter 0.4s;
+    }
+
+        .card:hover {
+            transform: scale(1.1);
+            cursor: pointer;
+            filter: blur(2%);
+            z-index: 2;
+        }
+
+    .card-body {
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .card-title {
+        font-size: 14px;
+    }
+
+    .bottom-info {
+        text-align: left;
+    }
+
+        .bottom-info p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+</style>
+
+@code {
+    [Parameter]
+    public Leilao Leilao { get; set; }
+
+    private void showLeilao(int id)
+    {
+        NavigationManager.NavigateTo($"/leilao/{id}");
+    }
+
+    private DateTime dataPagamento(DateTime dataPagemento)
+    {
+        DateTime pagamentoate =dataPagemento.AddDays(5);
+
+        return pagamentoate;
+    }
+}

@@ -1,0 +1,522 @@
+﻿@page "/leilao/{id}"
+
+@using JBleiloes.data.Utilizadores
+@using JBleiloes.Components.Layout
+@using JBleiloes.data.Leiloes
+@using JBleiloes.data
+@using JBleiloes.data.Veiculos
+@using JBleiloes.data.Utilizadores
+@layout MainLayout
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<div class="title">
+    <h1>@leilao.titulo</h1>
+</div>
+
+<div class="container">
+<div class="left">
+        <div class="large-image-container">
+        <img src="@selectedImageUrl" alt="Selected Image" class="large-image">
+    </div>
+    <div class="thumbnail-container">
+            @foreach(String image in imageNames)
+            {
+               <img src=@image alt="Image 1" class="thumbnail-image" @onclick="@(() => UpdateSelectedImage(@image))">
+            }
+
+           @*<img src="EMC1.jpg" alt="Image 1" class="thumbnail-image" @onclick="@(() => UpdateSelectedImage("EMC1.jpg"))">
+            <img src="EMC2.jpg" alt="Image 2" class="thumbnail-image" @onclick="@(() => UpdateSelectedImage("EMC2.jpg"))">
+            <img src="EMC3.jpg" alt="Image 3" class="thumbnail-image" @onclick="@(() => UpdateSelectedImage("EMC3.jpg"))">*@
+    </div>
+</div>
+
+    <div class="right">
+        <form>
+            @if (leilao.a_decorrer == true)
+            {
+                @if(leilao.valor_atual == 0){
+                    <h3>Lance atual: <span class="green-text">@leilao.valor_inicial€</span></h3>
+                }
+                else
+                {
+                    <h3>Lance atual: <span class="green-text">@leilao.valor_atual€</span></h3>
+                }
+               @* <p>Valor Inicial: @leilao.valor_inicial€</p>*@
+
+                @if (DaysLeft > 0)
+                {
+                    <p class="orange-text">Termina em: @DaysLeft d @HoursLeft h</p>
+                }
+                else if (HoursLeft > 0)
+                {
+                    <p class="orange-text">Termina em: @HoursLeft h @MinutesLeft m</p>
+                }
+                else if (MinutesLeft > 0)
+                {
+                    <p class="orange-text">Termina em: @MinutesLeft m @SecondsLeft s</p>
+                }
+                else
+                {
+                    <p class="orange-text">Termina em: @SecondsLeft s</p>
+                }
+            }
+            @if (SessionUser.getSessionUser() != null && leilao.vendedor == SessionUser.getSessionUser().username && leilao.aprovado == true)
+            {
+                <p><span class="link-style" style="text-decoration: underline;" @onclick="ShowPopupH">Histórico de Licitações</span></p>
+
+                <PopupHistorico @ref="popupH" id_leilao="@leilao.id" />
+                <br />
+
+                <div>
+                    <p><span class="link-style" style="text-decoration: underline;" @onclick="ShowPopup">Mais informações</span></p>
+
+                    <PopupMoreInfo @ref="popup" veiculo="@veiculo" />
+                </div>
+            }
+
+            @if (user != null && jb.getUtilizador(leilao.vendedor).username != user.username && user.tipo_utilizador != 0 && user.tipo_utilizador != 2 && leilao.a_decorrer == true)
+            {
+                <p><span class="link-style" style="text-decoration: underline;" @onclick="ShowPopupH">Histórico de Licitações</span></p>
+
+                <PopupHistorico @ref="popupH" id_leilao="@leilao.id" />
+                <br />
+
+                <div class="licitacao-container">
+                    <label for="inputField">Sua Licitação:</label>
+                    <input type="text" id="inputField" name="inputField" @bind="licitação" placeholder="Licitação mínima de @(getLicitacaoMinima(leilao))" />
+                    <button type="button" class="confirm-button" @onclick="efetuarLicitação">Confirmar Licitação</button>
+                </div>
+
+                <br/>
+                <div>
+                    <p><span class="link-style" style="text-decoration: underline;" @onclick="ShowPopup">Mais informações</span></p>
+
+                    <PopupMoreInfo @ref="popup" veiculo="@veiculo" />
+                </div>
+                <div class="bottom-left">       
+
+                    @if (addedToWatchlist)
+                    {
+                        <button type="button" class="rmWatchlist-button" @onclick="() => removerWatchlist(SessionUser.getSessionUser().username, leilao.id)"> Remover da Watchlist </button>
+                    }
+                    @if (!addedToWatchlist)
+                    {
+                        <button type="button" class="addWatchlist-button" @onclick="() => adicionarWatchlist(SessionUser.getSessionUser().username, leilao.id)"> Adicionar à Watchlist </button>
+                    }
+                </div>
+            }
+            @if(user != null )
+            {
+                @if (user != null  && SessionUser.getSessionUser().tipo_utilizador == 0 && leilao.aprovado == false)
+                {
+                    <div class="button-container">
+                        <div class="bottom-left">
+                            <button type="button" @onclick="() => aprovar(leilao.id)">Aprovar Leilão</button>
+                        </div>
+                        <div class="bottom-left">
+                            <button type="button" @onclick="() => reprovar(leilao.id)">Reprovar Leilão</button>
+                        </div>
+                    </div>
+                }
+            }
+            @if(leilao.a_decorrer == false)
+            {
+                @if (leilao.aprovado == true)
+                {
+                    <p> Licitação vencedora: @leilao.valor_atual€</p>
+                    <p> Comprador: <span style="cursor: pointer; text-decoration: underline;" @onclick="() => profile(leilao.comprador)">@leilao.comprador</span></p>
+                }
+                <p> Valor Inicial: @leilao.valor_inicial€</p>
+                <p> Incremento Mínimo: @leilao.valor_minimo€</p>
+                
+                <p> Vendedor: <span style="cursor: pointer; text-decoration: underline;" @onclick="() => profile(leilao.vendedor)">@leilao.vendedor</span></p>
+                <h4> Dados Veiculo</h4>
+                <p> Marca: @veiculo.Marca</p>
+                <p> Modelo: @veiculo.Modelo</p>
+                <p> Ano: @veiculo.Ano</p>
+                <p> Quilometragem: @veiculo.Quilometragem</p>
+
+                @if (leilao.aprovado == true)
+                {
+                    <p> Estado: Terminado</p>
+                }
+
+                @if (leilao.Pago == false && String.Equals(SessionUser.getSessionUser().username, leilao.comprador, StringComparison.OrdinalIgnoreCase))
+                {
+                    <button type="button" class="" @onclick="efetuarPagamento"> Efetuar Pagamento </button>
+                }
+
+               
+            }
+            @if(leilao.a_decorrer == true){
+                <div class="bottom-right">
+                    @if (SessionUser.getSessionUser() == null){
+                        <p>Sold by: @leilao.vendedor</p>
+                    }
+                    else{                   
+                        <p>Sold by: <span style="cursor: pointer; text-decoration: underline;" @onclick="() => profile(leilao.vendedor)">@vendedor_name</span></p>
+                    }
+            </div>
+            }
+
+        </form>
+    </div>
+</div>
+
+<style>
+
+    .button-container {
+        display: flex;
+        gap: 10px; 
+        justify-content: center; 
+    }
+
+    .title {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .container {
+        display: flex;
+    }
+
+    .left {
+        flex: 1;
+        padding: 20px;
+    }
+
+    .right {
+        flex: 1;
+        padding: 20px;
+        border: 1px solid #ccc;
+        margin-left: 20px;
+        position: relative;
+        display: flex;
+        flex-direction: column; 
+        justify-content: space-between;
+    }
+
+    .licitacao-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .licitacao-container label {
+            margin-right: 5px;
+        }
+
+        .licitacao-container input {
+            flex-grow: 1;
+            padding: 3px; 
+        }
+
+    .confirm-button {
+        background-color: #007bff; 
+        color: white;
+        border: none;
+        padding: 5px 10px; 
+        font-size: 0.9em;
+        cursor: pointer;
+    }
+
+        .confirm-button:hover {
+            background-color: #0056b3;
+        }
+
+    .orange-text {
+        color: orange;
+    }
+
+    .green-text {
+        color: green;
+    }
+
+    .bottom-left {
+        margin-top: auto;
+        padding-top: 20px;
+    }
+
+    .addWatchlist-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .rmWatchlist-button {
+        background-color: #FF0000;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .bottom-right {
+        position: absolute; 
+        bottom: 20px; 
+        right: 20px; 
+    }
+
+    .gallery-container {
+        width: 100%;
+        text-align: center;
+    }
+
+    .large-image-container {
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .large-image {
+        width: 80%;
+        height: 300px;
+        object-fit: cover; 
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 5px;
+    }
+
+    .thumbnail-image {
+        width: 100px;
+        height: 60px;
+        object-fit: cover;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+
+    .thumbnail-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+
+    .thumbnail {
+        width: 150px;
+        height: 150px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 3px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+        .thumbnail:hover {
+            transform: scale(1.1);
+        }
+
+
+</style>
+
+@code {
+    [Parameter]
+    public string id { get; set; }
+
+    private string? vendedor_name = null;
+    private bool addedToWatchlist = false;
+    private string licitação { get; set; }
+
+    private Utilizador? user = @SessionUser.getSessionUser();
+
+    private Leilao leilao;
+    private Veiculo veiculo;
+
+    private int countDown = 0;
+    private int TotalSecondsLeft { get; set; }
+    private int DaysLeft { get; set; }
+    private int HoursLeft { get; set; }
+    private int MinutesLeft { get; set; }
+    private int SecondsLeft { get; set; }
+    private Timer timer;
+
+    private string selectedImageUrl = "";
+    IEnumerable<String> imageNames;
+    private PopupMoreInfo popup;
+    private PopupHistorico popupH;
+
+
+    JBLeiloes jb = new JBLeiloes();
+
+    protected override void OnInitialized()
+    {
+        if (int.TryParse(id, out int ident))
+        {
+            leilao = jb.getLeilaoId(ident);
+            vendedor_name = jb.getUtilizador(leilao.vendedor).nome;
+            veiculo = jb.getVeiculo(leilao.veiculo);
+            if (user != null)
+            {
+                addedToWatchlist = jb.podeAdicionarWatchList(SessionUser.getSessionUser().username, leilao.id);
+            }
+
+            countDown = (int)(leilao.tempo_de_leilao - DateTime.Now).TotalSeconds;
+
+            timer = new Timer(Countdown, null, 0, 1000);
+
+            selectedImageUrl = GetFirstImageName(leilao.imagem);
+            imageNames = GetImageNames(leilao.imagem);
+        }
+        else
+        {
+
+        }
+    }
+
+    private void Countdown(Object stateInfo)
+    {
+        var span = leilao.tempo_de_leilao - DateTime.Now;
+
+        DaysLeft = span.Days;
+        HoursLeft = span.Hours;
+        MinutesLeft = span.Minutes;
+        SecondsLeft = span.Seconds;
+
+        if (span.TotalSeconds >= 0)
+        {
+            InvokeAsync(() =>
+            {
+                StateHasChanged();
+            });
+        }
+        else
+        {
+            timer.Dispose();
+            string winner = jb.getVencedorLeilao(leilao.id);
+            if (winner != "null" &&  leilao.a_decorrer == true)
+            {
+                jb.removerA_Decorrer(leilao.id);
+                jb.defineComprador(leilao.id, winner);
+            }
+            else if (winner == "null")
+            {
+                jb.removerA_Decorrer(leilao.id);
+                jb.removeLeilaoNaoPago(leilao.id);
+            }
+            else
+            {
+                jb.removerA_Decorrer(leilao.id);
+            }
+        }
+    }
+
+    private void efetuarPagamento()
+    {
+        string winner = jb.getVencedorLeilao(leilao.id);
+        jb.addHistoricoCompras(winner, leilao.id);
+        jb.updateDonoVeiculo(leilao.veiculo, winner);
+        jb.addHistoricoVendas(leilao.vendedor, leilao.id);
+        jb.leilaoPago(leilao.id);
+
+        NavigationManager.NavigateTo("/transacoes");
+    }
+
+
+    private void efetuarLicitação()
+    {
+        decimal valor_licitação = decimal.Parse(licitação);
+
+        if (valor_licitação > leilao.valor_atual && valor_licitação >= (leilao.valor_atual + leilao.valor_minimo) && valor_licitação >= leilao.valor_inicial)
+        {
+
+            jb.atualizarValorAtualLeilao(leilao.id, valor_licitação);
+            leilao.valor_atual = valor_licitação;
+            jb.registarLicitação(SessionUser.getSessionUser().username, valor_licitação, leilao.id);
+
+            if (MinutesLeft <= 5)
+            {
+                var new_end_time = DateTime.Now.AddMinutes(5);
+                var span = new_end_time - DateTime.Now;
+                DaysLeft = span.Days;
+                HoursLeft = span.Hours;
+                MinutesLeft = span.Minutes;
+                SecondsLeft = span.Seconds;
+                timer.Change(0, Timeout.Infinite);
+                timer = new Timer(Countdown, null, 0, 1000);
+            }
+        }
+    }
+
+    private void aprovar(int id_leilao)
+    {
+        jb.aprovaLeilao(id_leilao);
+        StateHasChanged();
+        NavigationManager.NavigateTo("/aprovar");
+    }
+
+    private void reprovar(int id_leilao)
+    {
+        jb.removeLeilaoNaoPago(id_leilao);
+        StateHasChanged();
+        NavigationManager.NavigateTo("/aprovar");
+    }
+
+    private void adicionarWatchlist(string username, int idLeilao)
+    {
+        jb.AdicionarWatchlist(username, idLeilao);
+        addedToWatchlist = !addedToWatchlist;
+    }
+    private void removerWatchlist(string username, int idLeilao)
+    {
+        jb.removerWatchlist(username, idLeilao);
+        addedToWatchlist = !addedToWatchlist;
+    }
+
+    private void profile(string vendedor)
+    {
+        NavigationManager.NavigateTo($"/perfil/{vendedor}");
+    }
+
+    private decimal getLicitacaoMinima(Leilao leilao)
+    {
+        if (leilao.valor_atual < leilao.valor_inicial)
+        {
+            return leilao.valor_inicial;
+        }
+        return leilao.valor_atual + leilao.valor_minimo;
+    }
+
+    private void UpdateSelectedImage(string imageUrl)
+    {
+        selectedImageUrl = imageUrl;
+    }
+
+    private string GetFirstImageName(string imageFileNames)
+    {
+        if (string.IsNullOrEmpty(imageFileNames))
+        {
+            return null;
+        }
+
+        var imageNames = imageFileNames.Split('|');
+        return imageNames[0];
+    }
+
+    private IEnumerable<string> GetImageNames(string imageFileNames)
+    {
+        if (string.IsNullOrEmpty(imageFileNames))
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        return imageFileNames.Split('|');
+    }
+
+    private void ShowPopup()
+    {
+        popup.Show();
+    }
+
+    private void ShowPopupH()
+    {
+        popupH.Show();
+    }
+
+}

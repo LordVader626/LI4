@@ -1,0 +1,146 @@
+﻿@page "/transacoes"
+
+@using JBleiloes.data.Utilizadores
+@using JBleiloes.data.Leiloes
+@using JBleiloes.data
+@using JBleiloes.DB.Tabelas
+@using JBleiloes.Components.Leiloes
+@rendermode InteractiveServer
+@using System.Diagnostics;
+
+
+<PageTitle>Transações</PageTitle>
+
+@if (utilizador.tipo_utilizador != 0)
+{
+
+    @if (leiloesPorPagar != null)
+    {
+        <h2>Pagamento pendente</h2>
+        @foreach (Leilao leilao in leiloesPorPagar)
+        {
+            <div class="rectangle">
+                <TransaçãoCard Leilao="leilao" />
+            </div>
+        }
+
+    }
+
+    @if (leiloesHistoricoVendas != null)
+    {
+        <h2>Historico de vendas </h2>
+        <div class="leilao-container">
+
+            @foreach (Leilao leilao in leiloesHistoricoVendas)
+            {
+                <div class="rectangle">
+                    <TransaçãoCard Leilao="leilao" />
+                </div>
+            }
+
+        </div>
+    }
+
+    @if (leiloesHistoricoCompras != null)
+    {
+        <h2>Historico de compras </h2>
+        <div class="leilao-container">
+
+            @foreach (Leilao leilao in leiloesHistoricoCompras)
+            {
+                <div class="rectangle">
+                    <TransaçãoCard Leilao="leilao"/>
+                </div>
+            }
+
+        </div>
+    }
+}
+
+else
+{
+    <h2>Transações</h2>
+
+    <div class="leilao-container">
+        @foreach(Leilao leilao in todosLeiloesAcabados)
+        {
+            <div class="rectangle">
+                <TransaçãoCard Leilao="leilao"/>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .leilao-container {
+        display: flex;
+        gap: 5px;
+        padding: 10px;
+        align-items: flex-start;
+        margin-right: 30px;
+        margin-left: 30px;
+    }
+
+    .rectangle {
+        width: 354px;
+        height: 400px;
+        padding: 10px;
+        position: relative;
+    }
+
+    .redirect-link {
+        cursor: pointer;
+    }
+
+    .link-text {
+        font-size: 40px;
+        color: gray;
+        text-decoration: none;
+    }
+
+</style>
+
+
+
+
+@code {
+
+    private IEnumerable<Leilao> leiloesHistoricoCompras = null;
+    private Leilao[] leiloesHistoricoVendas = null;
+    private IEnumerable<Leilao> leiloesPorPagar = null;
+    private IEnumerable<Leilao> todosLeiloesAcabados = null;
+
+    private JBLeiloes jb = new JBLeiloes();
+
+    private Utilizador? utilizador = SessionUser.getSessionUser();
+
+    protected override void OnInitialized()
+    {
+        leiloesHistoricoCompras = jb.GetHistoricoCompras(utilizador.username, jb);
+        leiloesHistoricoVendas = jb.GetHistoricoVendas(utilizador.username, jb);
+        leiloesPorPagar = jb.getLeiloesPorPagarFromUser(utilizador.username);
+        todosLeiloesAcabados = jb.getLeiloesAcabados();
+
+        verificaLeiloesPorPagar();
+
+    }
+
+    private DateTime dataPagamento(DateTime dataPagemento)
+    {
+        DateTime pagamentoate = dataPagemento.AddDays(5);
+
+        return pagamentoate;
+    }
+
+    private void verificaLeiloesPorPagar()
+    {
+        foreach (Leilao leilao in todosLeiloesAcabados)
+        {
+            DateTime datacheck = dataPagamento(leilao.tempo_de_leilao);;
+            if (datacheck < DateTime.Now && leilao.Pago == false)
+            {
+                jb.removeLeilaoNaoPago(leilao.id);
+            }
+        }
+    }
+}

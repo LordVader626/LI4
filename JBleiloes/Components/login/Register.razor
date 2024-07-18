@@ -1,0 +1,287 @@
+﻿@page "/registar"
+@using JBleiloes.Components.Layout
+@using JBleiloes.data
+@using System.Globalization
+@using JBleiloes.data.Utilizadores
+@using JBleiloes.DB.Tabelas;
+@layout LoginLayout
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<div class="bg-white d-flex justify-content-center align-items-start vh-100 mt-5">
+    <div class="col-md-4 bg-white p-4 rounded">
+        <h3>Registar</h3>
+        <form @onsubmit="HandleRegisterSubmit">
+            <div class="form-group row">
+                <label for="username" class="col-sm-4 col-form-label">Username:</label>
+                <div class="col-sm-8">
+                    <input id="username" @bind="username" class="form-control" placeholder="Username" />
+                </div>
+            </div>
+            <br />
+            <div class="form-group row">
+                <label for="password" class="col-sm-4 col-form-label">Password:</label>
+                <div class="col-sm-8 password-input">
+                    <input id="password" @bind="password" @bind:event="oninput" type="@passwordType" class="form-control" placeholder="Password" />
+                    <button type="button" class="toggle-button" @onclick="TogglePasswordVisibility">@toggleButtonText</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(passwordMessage))
+                {
+                    <small class="password-message">@passwordMessage</small>
+                }
+            </div>
+
+            <br />
+            <div class="form-group row">
+                <label for="nome" class="col-sm-4 col-form-label">Nome:</label>
+                <div class="col-sm-8">
+                    <input id="nome" @bind="nome" class="form-control" placeholder="Nome" />
+                </div>
+            </div>
+            <br />
+            <div class="form-group row">
+                <label for="email" class="col-sm-4 col-form-label">Email:</label>
+                <div class="col-sm-8">
+                    <input id="email" @bind="email" type="email" class="form-control" placeholder="Email" />
+                </div>
+            </div>
+            <br />
+            <div class="form-group row">
+                <label for="nCC" class="col-sm-4 col-form-label">Nº_CC:</label>
+                <div class="col-sm-8">
+                    <input id="nCC" @bind="n_cc" class="form-control" placeholder="Nº_CC" />
+                </div>
+            </div>
+            <br />
+            <div class="form-group row">
+                <label for="nif" class="col-sm-4 col-form-label">NIF:</label>
+                <div class="col-sm-8">
+                    <input id="nif" @bind="NIF" class="form-control" placeholder="NIF" />
+                </div>
+            </div>
+            <br />
+            <div class="form-group row">
+                <label for="dataNascimento" class="col-sm-4 col-form-label">Data Nascimento:</label>
+                <div class="col-sm-8">
+                    <input id="dataNascimento" @bind="data_nascimento" class="form-control" placeholder="Data Nascimento" />
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(validationMessage))
+            {
+                <p style="color: red; margin-top: 10px;">@validationMessage</p>
+            }
+            <br />
+            <div class="form-group row">
+                <button class="btn btn-success btn-block" type="submit">Registar</button>
+            </div>
+            @if (SessionUser.getSessionUser() == null || SessionUser.getSessionUser().tipo_utilizador != 0)
+            {
+                <div class="login d-flex align-items-start">
+                    <p class="login-text mb-0">Já tem conta?</p>
+                    <a href="/login" class="dir">
+                        Login
+                    </a>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
+
+<style>
+    .bg-grey {
+        background-color: #f0f0f0;
+    }
+
+    .bg-white {
+        background-color: #ffffff;
+    }
+
+    .password-input {
+        position: relative;
+    }
+
+    .toggle-button {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .password-message {
+        margin-top: 5px;
+        color: #888;
+        font-size: 12px;
+    }
+
+    .login {
+        display: flex;
+        flex-direction: row;
+        list-style: none;
+        margin: 10px;
+        padding: 0;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .login-text {
+        margin-right: 5px;
+        display: flex;
+        align-items: flex-end;
+    }
+</style>
+
+@code {
+
+    public string username { get; private set; }
+    public string password { get; private set; }
+    public string nome { get; private set; }
+    public string email { get; private set; }
+    public string n_cc { get; private set; }
+    public string NIF { get; private set; }
+    public string data_nascimento { get; private set; }
+
+    private string passwordType = "password";
+    private string toggleButtonText = "Mostrar";
+    private string passwordMessage = "";
+    private string validationMessage = "";
+
+    private void TogglePasswordVisibility()
+    {
+        passwordType = passwordType == "password" ? "text" : "password";
+        toggleButtonText = passwordType == "password" ? "Mostrar" : "Ocultar";
+    }
+
+    private void ShowMessage(ChangeEventArgs args)
+    {
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            passwordMessage = "Insert a password";
+        }
+        else
+        {
+            passwordMessage = "";
+        }
+    }
+
+
+    private bool AllFieldsFilled()
+    {
+        bool allFilled =
+            !string.IsNullOrWhiteSpace(username)
+            && !string.IsNullOrWhiteSpace(password)
+            && !string.IsNullOrWhiteSpace(nome)
+            && !string.IsNullOrWhiteSpace(email)
+            && int.Parse(n_cc) != 0
+            && int.Parse(NIF) != 0
+            && !string.IsNullOrWhiteSpace(data_nascimento);
+
+        return allFilled;
+    }
+
+    private bool AllFieldsValid()
+    {
+        DBUtilizador dbUtilizador = DBUtilizador.getInstance();
+
+        DateTime parsedDate = DateTime.ParseExact(data_nascimento, "dd-MM-yyyy", null);
+
+        DateTime eighteenYearsAgo = DateTime.Now.AddYears(-18);
+        bool isEighteenOrOlder = parsedDate <= eighteenYearsAgo;
+
+        bool isDateValid = parsedDate.Day <= DateTime.DaysInMonth(parsedDate.Year, parsedDate.Month) && parsedDate.Month <= 12;
+
+        bool usernameExists = dbUtilizador.UsernameExists(username);
+        bool emailExists = dbUtilizador.EmailExists(email);
+        bool nifExists = dbUtilizador.NIFExists(int.Parse(NIF));
+        bool ccExists = dbUtilizador.CCExists(int.Parse(n_cc));
+
+        return isEighteenOrOlder && isDateValid && !usernameExists && !nifExists && !ccExists && !emailExists;
+    }
+
+    private void mensagemErro()
+    {
+        DBUtilizador dbUtilizador = DBUtilizador.getInstance();
+
+        DateTime parsedDate = DateTime.ParseExact(data_nascimento, "dd-MM-yyyy", null);
+
+        DateTime eighteenYearsAgo = DateTime.Now.AddYears(-18);
+        bool isEighteenOrOlder = parsedDate <= eighteenYearsAgo;
+
+        bool isDateValid = parsedDate.Day <= DateTime.DaysInMonth(parsedDate.Year, parsedDate.Month) && parsedDate.Month <= 12;
+
+        bool usernameExists = dbUtilizador.UsernameExists(username);
+        bool emailExists = dbUtilizador.EmailExists(email);
+        bool nifExists = dbUtilizador.NIFExists(int.Parse(NIF));
+        bool ccExists = dbUtilizador.CCExists(int.Parse(n_cc));
+
+        if (usernameExists)
+        {
+            validationMessage = "Nome de utilizador inválido. ";
+        }
+
+        else if (emailExists)
+        {
+            validationMessage = "Email já está em uso. ";
+        }
+
+        else if (ccExists)
+        {
+            validationMessage = "CC já em uso. ";
+        }
+
+        else if (nifExists)
+        {
+            validationMessage = "NIF já em uso. ";
+        }
+
+        else if (!isEighteenOrOlder)
+        {
+            validationMessage = "O utilizador deve ter pelo menos 18 anos. ";
+        }
+    }
+
+    private void HandleRegisterSubmit()
+    {
+        registo();
+    }
+
+    private void registo()
+    {
+        if (!AllFieldsFilled() || !AllFieldsValid())
+        {
+            if (!AllFieldsFilled())
+            {
+                validationMessage = "Por favor, preencha todos os campos.";
+            }
+            else
+            {
+                mensagemErro();
+            }
+        }
+        else
+        {
+            JBLeiloes jb = new JBLeiloes();
+            int ncc_parsed = int.Parse(n_cc);
+            int nif_parsed = int.Parse(NIF);
+            DateTime originalDate = DateTime.ParseExact(data_nascimento, "dd-MM-yyyy", null);
+            string switchedDateString = originalDate.ToString("yyyy-MM-dd");
+            DateOnly switchedDate = DateOnly.Parse(switchedDateString);
+
+
+            if (SessionUser.getSessionUser() != null && @SessionUser.getSessionUser().tipo_utilizador == 0)
+            {
+                jb.registerFuncionario(username, password, nome, email, ncc_parsed, nif_parsed, switchedDate);
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                jb.registerUser(username, password, nome, email, ncc_parsed, nif_parsed, switchedDate);
+                NavigationManager.NavigateTo("login");
+            }
+        }
+    }
+}

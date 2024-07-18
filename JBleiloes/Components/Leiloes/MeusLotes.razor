@@ -1,0 +1,121 @@
+﻿@page "/meuslotes"
+
+@using JBleiloes.DB.Tabelas
+@using JBleiloes.data.Utilizadores
+@using JBleiloes.data.Leiloes
+@using JBleiloes.data
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<PageTitle>Seus leilões</PageTitle>
+
+@if (@SessionUser.getSessionUser().tipo_utilizador == 2){
+    <h1>Leilões do Stand</h1>
+}
+else{
+    <h1>Leilões do @SessionUser.getSessionUser().nome</h1>
+}
+
+<div class="redirect-link" @onclick="registarLeilao">
+    <p class="link-text">Criar Leilão</p>
+</div>
+
+@*data @user.data_nascimento nif @user.NIF cc @user.n_cc email @user.email nome @user.nome pass @user.password username @user.username tipo @user.tipo_utilizador
+*@
+<h2>Leilões pendentes </h2>
+<div class="leilao-container">
+    @if (leiloes == null)
+    {
+        <h3>Loading . . . </h3>
+    }
+    else
+    {
+        @foreach (Leilao leilao in leiloes)
+        {
+            @if(leilao.aprovado == false){
+                <div class="rectangle">
+                    <Leilaocard Leilao="leilao" />
+                </div>
+            }
+        }
+    }
+</div>
+
+<h2>Leilões ativos </h2>
+<div class="leilao-container">
+    @if (leiloes == null)
+    {
+        <h3>Loading . . . </h3>
+    }
+    else
+    {
+        @foreach (Leilao leilao in leiloes)
+        {
+            @if (leilao.aprovado == true && leilao.a_decorrer == true)
+            {
+                <div class="rectangle">
+                    <Leilaocard Leilao="leilao" />
+                </div>
+            }
+        }
+    }
+</div>
+
+<style>
+    .leilao-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 10px;
+        margin-right: 30px;
+        margin-left: 30px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+    }
+
+    .rectangle {
+        width: 354px;
+        height: 400px;
+        padding: 10px;
+        position: relative;
+    }
+
+    .redirect-link {
+        cursor: pointer;
+    }
+
+    .link-text {
+        font-size: 40px; /* Adjust as needed */
+        color: gray;
+        text-decoration: none;
+    }
+
+</style>
+
+@code {
+    private IEnumerable<Leilao> leiloes;
+
+    private Utilizador? user = @SessionUser.getSessionUser();
+
+    private JBLeiloes jb = new JBLeiloes();
+
+    protected override void OnInitialized()
+    {
+        if (SessionUser.getSessionUser().tipo_utilizador == 1)
+        {
+            leiloes = jb.getLeiloesUtilizador(@SessionUser.getSessionUser().getUsername());
+        }
+        else
+        {
+            leiloes = DBLeilao.getInstance().getAllAdminLeiloes();
+        }
+    }
+
+    private void registarLeilao()
+    {
+        NavigationManager.NavigateTo("/criarleilao");
+    }
+}
